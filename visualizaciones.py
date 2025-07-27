@@ -1,3 +1,4 @@
+# 📊 visualizaciones.py
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -15,19 +16,14 @@ def show_visualization_tab():
 
     df = df_fact.merge(dim_geo, on='id_geo').merge(dim_tiempo, on='id_tiempo')
 
-    # ================================
-    # PRIMER GRÁFICO
-    # ================================
     st.subheader("📊 Serie de tiempo: Tasa de Matriculación vs Cobertura Neta")
-
-    deptos = sorted(df['departamento'].unique())
+    deptos = sorted(df['departamento'].dropna().unique())
     selected_depto_1 = st.selectbox("Selecciona un departamento (Gráfico 1)", deptos)
 
     df_1 = df[df['departamento'] == selected_depto_1]
     df_1 = df_1.groupby('a_o')[['tasa_matriculaci_n_5_16', 'cobertura_neta']].mean().reset_index()
 
     fig1 = go.Figure()
-
     fig1.add_trace(go.Scatter(
         x=df_1['a_o'],
         y=df_1['tasa_matriculaci_n_5_16'],
@@ -36,7 +32,6 @@ def show_visualization_tab():
         yaxis='y1',
         line=dict(color='blue')
     ))
-
     fig1.add_trace(go.Scatter(
         x=df_1['a_o'],
         y=df_1['cobertura_neta'],
@@ -66,17 +61,12 @@ def show_visualization_tab():
 
     st.plotly_chart(fig1, use_container_width=True)
 
-    # ================================
-    # SEGUNDO GRÁFICO
-    # ================================
     st.subheader("📊 Serie de tiempo: Cobertura Bruta vs Otra Métrica")
-
     selected_depto_2 = st.selectbox("Selecciona un departamento (Gráfico 2)", deptos, index=deptos.index(selected_depto_1))
 
     df_2 = df[df['departamento'] == selected_depto_2]
     df_2 = df_2.groupby('a_o')[['cobertura_bruta']].mean().reset_index()
 
-    # Simulamos métrica adicional
     if 'repitencia_secundaria' in df.columns:
         df_2['otra_metrica'] = df[df['departamento'] == selected_depto_2].groupby('a_o')['repitencia_secundaria'].mean().values
         nombre_metrica = 'Repitencia secundaria'
@@ -85,7 +75,6 @@ def show_visualization_tab():
         nombre_metrica = 'Tasa de Matriculación (5-16)'
 
     fig2 = go.Figure()
-
     fig2.add_trace(go.Scatter(
         x=df_2['a_o'],
         y=df_2['cobertura_bruta'],
@@ -94,7 +83,6 @@ def show_visualization_tab():
         yaxis='y1',
         line=dict(color='green')
     ))
-
     fig2.add_trace(go.Scatter(
         x=df_2['a_o'],
         y=df_2['otra_metrica'],

@@ -3,13 +3,11 @@ import pandas as pd
 import plotly.express as px
 import io
 
-# Colores oficiales Universidad Santo Tomás
 UST_BLUE = "#002855"
 UST_YELLOW = "#FFD100"
 UST_GRAY = "#F5F5F5"
 UST_WHITE = "#FFFFFF"
 
-# Estilo general
 st.markdown(f"""
     <style>
     .main {{
@@ -56,19 +54,18 @@ def show_transform_tab():
     tabla_deptos = (
         df
         .query("departamento != 'NACIONAL'")
-        [['c_digo_departamento','departamento']]
+        [['c_digo_departamento', 'departamento']]
         .drop_duplicates()
         .groupby('c_digo_departamento')
         .sample(n=1, random_state=1)
-        .reset_index()
-        .drop(columns= 'index')
+        .reset_index(drop=True)
     )
 
     df = (
         df
         .query("departamento != 'NACIONAL'")
-        .drop(columns = 'departamento')
-        .merge(tabla_deptos, on = 'c_digo_departamento', how = 'left')
+        .drop(columns='departamento')
+        .merge(tabla_deptos, on='c_digo_departamento', how='left')
     )
 
     st.markdown("""
@@ -82,20 +79,23 @@ def show_transform_tab():
 
     st.markdown("---")
     st.subheader("1️⃣ Limpieza y Validación de Datos")
+
     columnas_relevantes = [
         'a_o', 'departamento', 'municipio', 'c_digo_departamento',
         'poblaci_n_5_16', 'tasa_matriculaci_n_5_16',
         'cobertura_neta', 'cobertura_bruta'
     ]
-    columnas_faltantes = [col for col in columnas_relevantes if col not in df.columns] # list comprehension
+    columnas_faltantes = [col for col in columnas_relevantes if col not in df.columns]
     if columnas_faltantes:
         st.error(f"❌ Columnas faltantes: {columnas_faltantes}")
         return
+
     df = df[columnas_relevantes]
     df.columns = [c.lower() for c in df.columns]
     for col in df.columns:
         if col not in ['departamento', 'municipio', 'c_digo_departamento']:
             df[col] = pd.to_numeric(df[col], errors='coerce')
+
     df_clean = df.dropna()
 
     col1, col2 = st.columns(2)
@@ -114,9 +114,10 @@ def show_transform_tab():
         return dim[[f"id_{nombre}"] + cols]
 
     dim_tiempo = crear_dimension(df_clean, ['a_o'], 'tiempo')
+
     dim_geo = df_clean[['c_digo_departamento', 'departamento', 'municipio']].copy()
-    dim_geo = dim_geo.sort_values(by=['c_digo_departamento', 'municipio']).drop_duplicates().reset_index(drop=True)
-    #dim_geo = dim_geo.drop_duplicates(subset=['c_digo_departamento'], keep='first').reset_index(drop=True)
+    dim_geo = dim_geo.sort_values(by=['c_digo_departamento', 'municipio'])
+    dim_geo = dim_geo.drop_duplicates().reset_index(drop=True)
     dim_geo['id_geo'] = dim_geo.index + 1
     dim_geo = dim_geo[['id_geo', 'c_digo_departamento', 'departamento', 'municipio']]
 
@@ -136,6 +137,7 @@ def show_transform_tab():
         'cobertura_neta', 'cobertura_bruta']]
 
     st.success(f"✅ Tabla de hechos construida con {len(df_fact):,} registros.")
+
     st.session_state['df_fact'] = df_fact
     st.session_state['dim_geo'] = dim_geo
     st.session_state['dim_tiempo'] = dim_tiempo
@@ -166,6 +168,7 @@ def show_transform_tab():
     st.subheader("5️⃣ Vista y Descarga de la Tabla de Hechos")
 
     st.dataframe(df_fact.head(50))
+
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df_fact.to_excel(writer, index=False, sheet_name='TablaHechos')
@@ -175,7 +178,8 @@ def show_transform_tab():
         label="📥 Descargar Tabla de Hechos",
         data=output,
         file_name='tabla_hechos_educacion.xlsx',
-        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
 
     st.markdown("---")
     st.subheader("📈 Resumen por Departamento y Año")
